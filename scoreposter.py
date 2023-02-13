@@ -2,12 +2,12 @@ import requests
 import os
 from random import choice
 from typing import List, Literal
+import datetime
 
 from selenium import webdriver
 from selenium.webdriver import FirefoxOptions
 from selenium.webdriver.support.ui import WebDriverWait
 from PIL import Image
-import geckodriver_autoinstaller
 
 from rosu_pp_py import Beatmap, Calculator
 from dotenv import load_dotenv
@@ -79,7 +79,7 @@ def int_to_santised_int(value: int) -> int:
 
 def extract_initial_data(initial_data):
     try:
-        beatmap_id, rank, score_max, n300, n100, n50, nmiss, perfect, int_mods, score_id = (
+        beatmap_id, rank, score_max, n300, n100, n50, nmiss, perfect, int_mods, score_id, date = (
             initial_data[0]["beatmap_id"], 
             initial_data[0]["rank"],
             int(initial_data[0]["maxcombo"]), 
@@ -89,12 +89,13 @@ def extract_initial_data(initial_data):
             int(initial_data[0]["countmiss"]), 
             initial_data[0]["perfect"], 
             int_to_santised_int(int(initial_data[0]["enabled_mods"])),
-            initial_data[0]["score_id"]
+            initial_data[0]["score_id"],
+            initial_data[0]["date"]
         )
     except IndexError as e:
         print(f"an exception occurred: '{e}'; that user probably doesn't have any data available.")
         raise
-    return beatmap_id, rank, score_max, n300, n100, n50, nmiss, perfect, int_mods, score_id
+    return beatmap_id, rank, score_max, n300, n100, n50, nmiss, perfect, int_mods, score_id, date
 
 def extract_map_data(map_data):
     artist, title, creator, diff, map_max, circles, sliders, spinners, mode, status = (
@@ -203,7 +204,7 @@ def scorepost(username : str, ruleset : str):
         return f"No plays done by {username} on {ruleset} recently"
     # extract the relevant information from the response
     global score_id
-    beatmap_id, rank, score_max, n300, n100, n50, nmiss, perfect, int_mods, score_id = extract_initial_data(initial_data)
+    beatmap_id, rank, score_max, n300, n100, n50, nmiss, perfect, int_mods, score_id, date = extract_initial_data(initial_data)
     readable_mods = int_to_readable(int(int_mods))
 
     print("done!")
@@ -282,6 +283,12 @@ def scorepost(username : str, ruleset : str):
 
     link = getScoreLink(score_id, gamemode)
 
+    global timeOutput
+ 
+    dateFormat = datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+    scoreTime = int(datetime.datetime.timestamp(dateFormat))
+    timeOutput = f"Play set at <t:{scoreTime}:f>"
+
     return scorepost
 
 # start discord bot
@@ -315,9 +322,9 @@ async def scoreposter(interaction: discord.Interaction, osu_user : str, mode : L
     await bot.change_presence(status=discord.Status.online, activity=discord.Game(choice(["osu!","osu!Lazer", "osu!stream"])))
     if link != None:
         # await interaction.response.send_message(f"```{title}``` {link}", ephemeral=False, view=view)
-        await interaction.response.send_message(f"```{title}``` {link}", ephemeral=False)
+        await interaction.response.send_message(f"```{title}```\n {timeOutput}\n {link}", ephemeral=False)
     else:
-        await interaction.response.send_message(f"```{title}```", ephemeral=False)
+        await interaction.response.send_message(f"```{title}```\n {timeOutput}", ephemeral=False)
 
 class SS(discord.ui.View):
     def __init__(self):
