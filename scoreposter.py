@@ -245,7 +245,7 @@ def scorepost(username : str, ruleset : str):
         combo = "FC "
         max_pp_string = ""
         miss_string = ""
-    elif nmiss == 0:
+    elif nmiss == 0 or gamemode == 3:
         combo = f"{int(score_max):,}x/{int(map_max):,}x "
         max_pp_string = ""
         miss_string = ""
